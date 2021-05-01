@@ -1,0 +1,82 @@
+options:
+
+    # Prefix / Variable Mode
+    # 0: No Prefix, 1: Prefix, 2: Variable
+    prefixmode: 1
+
+    # If above is 2 (Variable), what is the variable's name?
+    varname: {prefix::%player's uuid%}
+
+command /bc [<string>]:
+    aliases: /bcast, /broadcast
+    trigger:
+        if player has permission "chat.bc":
+            if arg-1 is set:
+                set {_a::*} to arg-1 split at " "
+                if {_a::1} is not "-a":
+                    send "", "&8&l» &c&lBROADCAST &7from %player%", "&7%join {_a::*} with "" ""%" and ""
+                else:
+                    remove "-a" from {_a::*}
+                    send "", "&8&l» &c&lBROADCAST", "&7%join {_a::*} with "" ""%" and ""
+            else:
+                send "&c<text> is not set." and "&cUsage: &7/bc &b[-a] <text>"
+        else:
+            send "&cYou do not have permission to run this command."
+
+command /chat [<string="help">]:
+    aliases: /chatmgr, /chatmanager
+    trigger:
+        set {_a::*} to arg-1 split at " "
+        if {_a::1} is "help":
+            send "&c&lChat Manager &7by Slymeball" and ""
+            if player has permission "chat.clear":
+                send "&7/chat &bclear [-a] &8&l» &7Clears the chat."
+            if player has permission "chat.mute":
+                send "&7/chat &bmute [-a] &8&l» &7Mutes the chat."
+            if player has permission "chat.reload":
+                send "&7/chat &breload &8&l» &7Reloads ChatManager"
+        else if {_a::1} is "clear":
+            if player has permission "chat.clear":
+                loop 499 times:
+                    send "" to all players
+                if {_a::2} is "-a":
+                    send "&8&l» &7Chat has been cleared."
+                else:
+                    send "&8&l» &7Chat has been cleared by &c%player%&7."
+            else:
+                send "&cYou do not have permission to run this command."
+        else if {_a::1} is "mute":
+            if player has permission "chat.mute":
+                if {chatMuted} is true:
+                    set {chatMuted} to false
+                else:
+                    set {chatMuted} to true
+            else:
+                send "&cYou do not have permission to run this command."
+        else if {_a::1} is "reload":
+            if player has permission "chat.reload":
+                send "&8&l» &7Reloading &cChatManager&7..."
+                set {chatMGR.reloadTime} to now
+                reload script "chatmgr.sk"
+                send "&8&l» &7Reloaded &cChatManager &7in &c%difference between {chatMGR.reloadTime} and now%" to all players
+            else:
+                send "&cYou do not have permission to run this command."
+
+chat:
+    if {chatMuted} is true:
+        if player doesn't have permission "chat.mute.exempt":
+            cancel event
+            send "&cYou do not have permission to chat while chat is muted."
+            stop trigger
+    set {_i} to 0
+    loop player's permissions:
+        if loop-value starts with "chat.color.":
+            set {_split::*} to split loop-value at "."
+            add "&%{_split::3}%" to {_chatcolors::*}
+    set {_chatcolor} to join {_chatcolors::*} with ""
+    if {@prefixmode} is 0:
+        set chat format to "&f&l%player% &8&l» &7%colored {_chatcolor}%%message%"
+    else if {@prefixmode} is 1:
+        set chat format to "&f%player's prefix%%player% &8&l» &7%colored {_chatcolor}%%message%"
+    else if {@prefixmode} is 2:
+        set chat format to "&f%{@varname}%%player% &8&l» &7%colored {_chatcolor}%%message%"
